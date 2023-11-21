@@ -29,4 +29,4 @@ jobs:
           push: true
           file: deploy/Dockerfile
           target: base
-          tags: s3rius/rustus:latest,s3rius/rustus:${{env.APP_VERSION}}
+          tags: zhampeisovtigran/rustus:latest,zhampeisovtigran/rustus:${{env.APP_VERSION}}
