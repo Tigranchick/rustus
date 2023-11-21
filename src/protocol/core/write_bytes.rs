@@ -4,6 +4,7 @@ use actix_web::{
     web::Bytes,
     HttpRequest, HttpResponse,
 };
+use sha2::Digest;
 
 use crate::{
     errors::RustusError,
@@ -108,6 +109,9 @@ pub async fn write_bytes(
         return Err(RustusError::FrozenFile);
     }
     let chunk_len = bytes.len();
+
+    // Appending sha256.
+    file_info.sha256.update(&bytes);
     // Appending bytes to file.
     state.data_storage.add_bytes(&file_info, bytes).await?;
     // bytes.clear()
@@ -119,6 +123,11 @@ pub async fn write_bytes(
     let mut hook = Hook::PostReceive;
 
     if file_info.length == Some(file_info.offset) {
+        log::debug!("Calculating sha256 for file {}", file_info.id);
+        file_info.finalize_sha256().map_err(|err| {
+            log::error!("{}", err);
+            RustusError::UnableToWrite("Can't calculate sha256".into())
+        })?;
         hook = Hook::PostFinish;
     }
     if state.config.hook_is_active(hook) {

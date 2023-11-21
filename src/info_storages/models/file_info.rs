@@ -5,6 +5,7 @@ use base64::{engine::general_purpose, Engine};
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use log::error;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// Information about file.
 /// It has everything about stored file.
@@ -22,6 +23,12 @@ pub struct FileInfo {
     pub parts: Option<Vec<String>>,
     pub storage: String,
     pub metadata: HashMap<String, String>,
+    /// It's not a part of the protocol.
+    /// Finalized sha256 hash of the file, only for business logic will be used from hook.
+    /// Not tested appropriately.
+    pub finalized_sha256: Option<String>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub sha256: Sha256,
 }
 
 impl FileInfo {
@@ -64,6 +71,8 @@ impl FileInfo {
             is_partial: false,
             parts: None,
             created_at: chrono::Utc::now(),
+            finalized_sha256: None,
+            sha256: Sha256::new(),
         }
     }
 
@@ -115,6 +124,18 @@ impl FileInfo {
             error!("{}", err);
             RustusError::UnableToWrite("Can't serialize info".into())
         })?
+    }
+
+    pub fn finalize_sha256(&mut self) -> RustusResult<()> {
+        let hash = self.sha256.clone().finalize();
+        let hex_str = hash
+            .iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect::<String>();
+
+        log::debug!("Finalized sha256: {}", hex_str);
+        self.finalized_sha256 = Some(hex_str);
+        Ok(())
     }
 
     #[cfg(test)]

@@ -1,6 +1,7 @@
 use actix_web::{web, web::Bytes, HttpRequest, HttpResponse};
 use base64::{engine::general_purpose, Engine};
 use std::collections::HashMap;
+use sha2::Digest;
 
 use crate::{
     info_storages::FileInfo,
@@ -216,6 +217,8 @@ pub async fn create_file(
         if check_header(&request, "Content-Type", octet_stream) {
             // Writing first bytes.
             let chunk_len = bytes.len();
+            // Appending bytes to sha256.
+            file_info.sha256.update(&bytes);
             // Appending bytes to file.
             state.data_storage.add_bytes(&file_info, bytes).await?;
             // Updating offset.
