@@ -10,6 +10,12 @@ FROM debian:bullseye-20211201-slim AS base
 
 COPY --from=builder /app/target/release/rustus /usr/local/bin/
 
+RUN apt-get update && apt install -y openssl
+
+RUN apt-get update \
+    && apt-get install -y ca-certificates tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 ENTRYPOINT ["/usr/local/bin/rustus"]
 
 FROM base as rootless
